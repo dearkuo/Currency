@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>優雅匯率轉換</title>
+    <style>
+        /* 背景圖片：使用柔和的插畫風格背景 */
+        body {
+            font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-image: url('https://images.unsplash.com/photo-1543966888-7c1dc482a810?q=80&w=2000&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+        }
+
+        /* 卡片容器：半透明磨砂玻璃質感 */
+        .container {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 380px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        h2 { text-align: center; color: #5d6d7e; margin-bottom: 25px; font-weight: 300; letter-spacing: 1px; }
+
+        label { display: block; margin: 15px 0 8px; font-size: 0.9em; color: #7f8c8d; }
+
+        /* 優雅配色輸入與選單 */
+        select, input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dcdde1;
+            border-radius: 10px;
+            box-sizing: border-box;
+            font-size: 16px;
+            color: #2c3e50;
+            background-color: rgba(255, 255, 255, 0.5);
+            transition: border-color 0.3s;
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: #a29bfe; /* 溫柔的紫色焦點色 */
+        }
+
+        .rate-info { 
+            margin: 15px 0; 
+            color: #6c5ce7; 
+            font-size: 0.85em; 
+            text-align: center;
+            background: rgba(162, 155, 254, 0.1);
+            padding: 8px;
+            border-radius: 8px;
+        }
+
+        .result { 
+            font-size: 1.8em; 
+            font-weight: bold; 
+            text-align: center; 
+            color: #2d3436; 
+            margin-top: 25px;
+            padding: 15px;
+            background: #dfe6e9;
+            border-radius: 12px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Currency Converter</h2>
+    
+    <label>選擇幣別</label>
+    <select id="currency" onchange="convert()">
+        <option value="32.5">美元 (USD)</option>
+        <option value="0.21">日圓 (JPY)</option>
+        <option value="0.023">韓元 (KRW)</option>
+        <option value="4.4">人民幣 (CNY)</option>
+    </select>
+    
+    <div class="rate-info" id="rateDisplay">1 USD = 32.5 TWD</div>
+
+    <label>金額</label>
+    <input type="number" id="amount" placeholder="輸入金額..." oninput="convert()">
+
+    <div class="result" id="result">0.00 TWD</div>
+</div>
+
+<script>
+    function convert() {
+        const amount = document.getElementById('amount').value;
+        const selectElement = document.getElementById('currency');
+        const rate = parseFloat(selectElement.value);
+        const currencyName = selectElement.options[selectElement.selectedIndex].text;
+        const resultDiv = document.getElementById('result');
+        const rateDisplay = document.getElementById('rateDisplay');
+
+        // 更新匯率說明
+        rateDisplay.innerText = `1 ${currencyName.split(' ')[0]} = ${rate} TWD`;
+
+        // 計算並更新結果
+        if (amount === "" || amount < 0) {
+            resultDiv.innerText = "0.00 TWD";
+        } else {
+            const total = (amount * rate).toLocaleString(undefined, {
+                minimumFractionDigits: 2, 
+                maximumFractionDigits: 2
+            });
+            resultDiv.innerText = `${total} TWD`;
+        }
+    }
+
+    // 初始化
+    convert();
+</script>
+
+</body>
+</html>
