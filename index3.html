@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>20749-Neon Tetris </title>
+    <style>
+        body { background: #1a1a2e; color: #fff; display: flex; flex-direction: column; align-items: center; font-family: 'Segoe UI', sans-serif; margin: 0; padding-top: 20px; }
+        h1 { margin: 0 0 10px 0; color: #30e3ca; text-shadow: 0 0 10px #30e3ca; }
+        #game-container { position: relative; border: 4px solid #4e4e6a; box-shadow: 0 0 20px #e94560; }
+        canvas { display: block; background: #0f3460; }
+        .ui { text-align: center; margin-top: 15px; }
+        button { padding: 10px 25px; font-size: 16px; cursor: pointer; background: #e94560; color: white; border: none; border-radius: 5px; transition: 0.3s; font-weight: bold; }
+        button:hover { background: #ff4d6d; transform: scale(1.05); }
+        .stats { font-size: 24px; margin-bottom: 10px; color: #e94560; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h1>20749-俄羅斯方塊</h1>
+    <div class="stats">Score: <span id="score">0</span></div>
+    <div id="game-container">
+        <canvas id="tetris" width="240" height="400"></canvas>
+    </div>
+    <div class="ui">
+        <button id="startBtn">開始 / 暫停</button>
+        <p>控制: ← → 移動, 空白鍵 旋轉, ↓ 加速</p>
+    </div>
+
+<script>
+    const canvas = document.getElementById('tetris');
+    const context = canvas.getContext('2d');
+    context.scale(20, 20);
+
+    function createPiece(type) {
+        if (type === 'I') return [[0, 1, 0, 0], [0, 1, 0, 0], [0, 1, 0, 0], [0, 1, 0, 0]];
+        if (type === 'L') return [[0, 2, 0], [0, 2, 0], [0, 2, 2]];
+        if (type === 'J') return [[0, 3, 0], [0, 3, 0], [3, 3, 0]];
+        if (type === 'O') return [[4, 4], [4, 4]];
+        if (type === 'Z') return [[5, 5, 0], [0, 5, 5], [0, 0, 0]];
+        if (type === 'S') return [[0, 6, 6], [6, 6, 0], [0, 0, 0]];
+        if (type === 'T') return [[0, 7, 0], [7, 7, 7], [0, 0, 0]];
+    }
+
+    const arena = createMatrix(12, 20);
+    const player = { pos: {x: 0, y: 0}, matrix: null, score: 0 };
+
+    function createMatrix(w, h) {
+        const matrix = [];
+        while (h--) matrix.push(new Array(w).fill(0));
+        return matrix;
+    }
+
+    function draw() {
+        context.fillStyle = '#0f3460';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        drawMatrix(arena, {x: 0, y: 0});
+        drawMatrix(player.matrix, player.pos);
+    }
+
+    function drawMatrix(matrix, offset) {
+        matrix.forEach((row, y) => {
+            row.forEach((value, x) => {
+                if (value !== 0) {
+                    context.fillStyle = ['#ff4d6d', '#4e4e6a', '#30e3ca', '#fefefe', '#ffc93c', '#ff8b94', '#9370db'][value - 1];
+                    context.fillRect(x + offset.x, y + offset.y, 1, 1);
+                }
+            });
+        });
+    }
+
+    function merge(arena, player) {
+        player.matrix.forEach((row, y) => {
+            row.forEach((value, x) => {
+                if (value !== 0) arena[y + player.pos.y][x + player.pos.x] = value;
+            });
+        });
+    }
+
+    function playerDrop() {
+        player.pos.y++;
+        if (collide(arena, player)) {
+            player.pos.y--;
+            merge(arena, player);
+            playerReset();
+            arenaSweep();
+            updateScore();
+        }
+        dropCounter = 0;
+    }
+
+    function playerMove(dir) {
+        player.pos.x += dir;
+        if (collide(arena, player)) player.pos.x -= dir;
+    }
+
+    function playerRotate() {
+        const matrix = player.matrix;
+        for (let y = 0; y < matrix.length; ++y) {
+            for (let x = 0; x < y; ++x) [matrix[x][y], matrix[y][x]] = [matrix[y][x], matrix[x][y]];
+        }
+        matrix.forEach(row => row.reverse());
+        if (collide(arena, player)) matrix.forEach(row => row.reverse());
+    }
+
+    function collide(arena, player) {
+        const [m, o] = [player.matrix, player.pos];
+        for (let y = 0; y < m.length; ++y) {
+            for (let x = 0; x < m[y].length; ++x) {
+                if (m[y][x] !== 0 && (arena[y + o.y] && arena[y + o.y][x + o.x]) !== 0) return true;
+            }
+        }
+        return false;
+    }
+
+    function arenaSweep() {
+        outer: for (let y = arena.length - 1; y > 0; --y) {
+            for (let x = 0; x < arena[y].length; ++x) if (arena[y][x] === 0) continue outer;
+            const row = arena.splice(y, 1)[0].fill(0);
+            arena.unshift(row);
+            player.score += 10;
+            y++;
+        }
+    }
+
+    function playerReset() {
+        const pieces = 'ILJOTSZ';
+        player.matrix = createPiece(pieces[pieces.length * Math.random() | 0]);
+        player.pos.y = 0;
+        player.pos.x = 5;
+        if (collide(arena, player)) { arena.forEach(row => row.fill(0)); player.score = 0; }
+    }
+
+    function updateScore() { document.getElementById('score').innerText = player.score; }
+
+    let dropCounter = 0;
+    let dropInterval = 1000;
+    let lastTime = 0;
+    let isPaused = true;
+
+    function update(time = 0) {
+        if (!isPaused) {
+            const deltaTime = time - lastTime;
+            lastTime = time;
+            dropCounter += deltaTime;
+            if (dropCounter > dropInterval) playerDrop();
+            draw();
+        }
+        requestAnimationFrame(update);
+    }
+
+    document.addEventListener('keydown', event => {
+        if (event.keyCode === 37) playerMove(-1); // 左
+        else if (event.keyCode === 39) playerMove(1); // 右
+        else if (event.keyCode === 40) playerDrop(); // 下
+        else if (event.keyCode === 32) playerRotate(); // 空白鍵旋轉
+    });
+
+    document.getElementById('startBtn').addEventListener('click', () => isPaused = !isPaused);
+
+    playerReset();
+    update();
+</script>
+</body>
+</html>
